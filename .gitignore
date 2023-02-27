@@ -1,1 +1,5 @@
 data/StreetHarzards
+pre_trained/
+__pycache__
+wandb/
+ckpt/

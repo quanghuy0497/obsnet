@@ -3,6 +3,9 @@ import time
 import random
 import argparse
 import numpy as np
+import wandb
+import datetime
+import pdb
 
 import torch
 import torch.nn as nn
@@ -21,15 +24,28 @@ def main(args):
     """ Manage the training, the testing and the declaration of the 'global parameters'
         such as optimizer, scheduler, the SumarryWriter, etc. """
 
+    date_id = "{:%Y%m%d@%H%M%S}".format(datetime.datetime.now())
+    args.dset_folder = "data/" + args.data
+    args.obsnet_file = "ckpt/" + args.data + "/" + date_id + "/"
+    os.mkdir(args.obsnet_file)
+    args.tboard = "logs/" + args.data + "/" + date_id + "/"
+
     writer = SummaryWriter(args.tboard)
     writer.add_text("option", str(args), 0)
+    if args.wandb:
+        if args.no_pretrained:
+            wandb_name = date_id + "-" + args.data + "-" + args.model + "-" + args.adv + "-no_pretrained"
+        else:
+            wandb_name = date_id + "-" + args.data + "-" + args.model  + "-" + args.adv + "-" + args.segnet_file
+            args.segnet_file = 'pre_trained/' +  args.segnet_file
+        wandb.init(project="ObsNet", name = wandb_name, config = args, id = date_id)
 
     # Load Dataset
     train_loader, val_loader, test_loader = data_loader(args.data, args)
 
     args.cmap = train_loader.dataset.cmap
     args.class_name = train_loader.dataset.class_name
-    args.colors = np.array(train_loader.dataset.colors)
+    # args.colors = np.array(train_loader.dataset.colors)
     # Load Networks
     obsnet, segnet = net_loader(args)
     if args.optim == "SGD":
@@ -47,10 +63,13 @@ def main(args):
         best = 0
         start = time.time()
         for epoch in range(0, args.epoch+1):
-            print(f"######## Epoch: {epoch} || Time: {(time.time() - start)/60:.2f} min ########")
+            print(f"\n######## Epoch: {epoch} || Time: {(time.time() - start)/60:.2f} min ########")
 
-            train_loss, obsnet_acc = training(epoch, obsnet, segnet, train_loader, optimizer, writer, args)
+            train_loss, obsnet_acc, segnet_acc = training(epoch, obsnet, segnet, train_loader, optimizer, writer, args)
             val_loss, results_obs = evaluate(epoch, obsnet, segnet, val_loader, "Val", writer, args)
+            
+            if args.wandb:
+                wandb.log({'Train Loss': train_loss, 'Val Loss': val_loss, 'ObsNet Acc': obsnet_acc, 'SegNet Acc': segnet_acc, 'AuROC': results_obs["auroc"], 'Fpr_at_95tpr': results_obs["fpr_at_95tpr"], 'AuPR': results_obs["aupr"],'ACE': results_obs["ace"]}, step = epoch + 1)
 
             if epoch % 5 == 0:               # save ckpt
                 model_to_save = obsnet.module.state_dict()
@@ -63,6 +82,8 @@ def main(args):
                 torch.save(model_to_save, os.path.join(args.obsnet_file, "best.pth"))
             sched.step()
     writer.close()
+    if args.wandb:
+        wandb.finish()
 
 
 if __name__ == '__main__':
@@ -77,18 +98,19 @@ if __name__ == '__main__':
     parser.add_argument("--T",             type=int,   default=50,       help="number of forward pass for ensemble")
     parser.add_argument("--seed",          type=int,   default=-1,       help="seed, if -1 no seed is use")
     parser.add_argument("--bsize",         type=int,   default=8,        help="batch size")
-    parser.add_argument("--lr",            type=float, default=2e-2,     help="learning rate of obsnet")
+    parser.add_argument("--lr",            type=float, default=0.2,     help="learning rate of obsnet")    #default=2e-2
     parser.add_argument("--Temp",          type=float, default=1.2,      help="temperature scaling ratio")
     parser.add_argument("--noise",         type=float, default=0.,       help="noise injection in the img data")
-    parser.add_argument("--epsilon",       type=float, default=0.1,      help="epsilon for adversarial attacks")
+    parser.add_argument("--epsilon",       type=float, default=0.025,      help="epsilon for adversarial attacks") #default=0.1
     parser.add_argument("--gauss_lambda",  type=float, default=0.002,    help="lambda parameters for gauss params")
     parser.add_argument("--epoch",         type=int,   default=50,       help="number of epoch")
-    parser.add_argument("--num_workers",   type=int,   default=0,        help="number of workers")
+    parser.add_argument("--num_workers",   type=int,   default=4,        help="number of workers") #default=0
     parser.add_argument("--num_nodes",     type=int,   default=1,        help="number of node")
     parser.add_argument("--adv",           type=str,   default="none",   help="type of adversarial attacks")
     parser.add_argument("--optim",         type=str,   default="SGD",    help="type of optimizer SGD|AdamW")
     parser.add_argument("--test_multi",    type=str,   default="obsnet", help="test all baseline, split by comma")
     parser.add_argument("--drop",          action='store_true',          help="activate dropout in segnet")
+    parser.add_argument("--wandb",          action='store_true',          help="activate wandb log")
     parser.add_argument("--no_img",        action='store_true',          help="use image for obsnet")
     parser.add_argument("--resume",        action='store_true',          help="restart the training")
     parser.add_argument("--obs_mlp",       action='store_true',          help="use a smaller archi for obsnet")
@@ -175,3 +197,4 @@ if __name__ == '__main__':
         args.fractal = iter(data_loader("Fractal", args))
 
     main(args)
+    

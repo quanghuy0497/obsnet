@@ -31,8 +31,9 @@ def net_loader(args):
     else:
         raise NameError("Model not known")
 
-    segnet.load_state_dict(torch.load(args.segnet_file))
-    segnet.eval()
+    if not args.no_pretrained:
+        segnet.load_state_dict(torch.load(args.segnet_file))
+        segnet.eval()
 
     if args.test_only or args.resume:
         obsnet.load_state_dict(torch.load(os.path.join(args.obsnet_file, "best.pth")))

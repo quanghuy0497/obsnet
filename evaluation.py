@@ -137,7 +137,7 @@ def evaluate(epoch, obsnet, segnet, loader, split, writer, args):
     segnet_acc = 100 * (segnet_acc / nb_sample)
     writer.add_scalars('data/' + split + 'Loss', {"loss": avg_loss}, epoch)
 
-    print(f"\rEpoch Summary: {split} Avg loss: {avg_loss:.4f}, "
+    print(f"\rEpoch {split} Summary: Avg loss: {avg_loss:.4f}, "
           f"ObsNet acc: {obsnet_acc:.2f}, "
           f"SegNet acc: {segnet_acc:.2f}\t"
           )

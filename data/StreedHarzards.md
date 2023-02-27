@@ -8,8 +8,8 @@ If you find this useful in your research, please consider citing:
       journal={arXiv preprint arXiv:},
       year={2019}
     }
-Link download:
-https://people.eecs.berkeley.edu/~hendrycks/streethazards_test.tar
-https://people.eecs.berkeley.edu/~hendrycks/streethazards_train.tar
+Link download:  
++ Train: https://people.eecs.berkeley.edu/~hendrycks/streethazards_train.tar  
++ Test:  https://people.eecs.berkeley.edu/~hendrycks/streethazards_test.tar
 
 Just extract all files and place into folder `/data/StreetHarzards/`
