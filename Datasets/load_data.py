@@ -33,7 +33,7 @@ def data_loader(data, args):
         val_set = CamVid(args.dset_folder, split="val", transforms=t_eval)
         test_set = CamVid(args.dset_folder, split="test_ood", transforms=t_eval)
 
-    elif data == "StreetHazard":
+    elif data == "StreetHazards":
         train_set = StreetHazard(args.dset_folder, split="train", transforms=t_train)
         val_set = StreetHazard(args.dset_folder, split="validation", transforms=t_eval)
         test_set = StreetHazard(args.dset_folder, split="test", transforms=t_eval)

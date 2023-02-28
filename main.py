@@ -25,9 +25,10 @@ def main(args):
         such as optimizer, scheduler, the SumarryWriter, etc. """
 
     date_id = "{:%Y%m%d@%H%M%S}".format(datetime.datetime.now())
-    args.dset_folder = "data/" + args.data
-    args.obsnet_file = "ckpt/" + args.data + "/" + date_id + "/"
-    os.mkdir(args.obsnet_file)
+    args.dset_folder = "data/" + args.data + "/"
+    if not args.test_only:
+        args.obsnet_file = "ckpt/" + args.data + "/" + date_id + "/"
+        os.mkdir(args.obsnet_file)
     args.tboard = "logs/" + args.data + "/" + date_id + "/"
 
     writer = SummaryWriter(args.tboard)
@@ -37,9 +38,8 @@ def main(args):
             wandb_name = date_id + "-" + args.data + "-" + args.model + "-" + args.adv + "-no_pretrained"
         else:
             wandb_name = date_id + "-" + args.data + "-" + args.model  + "-" + args.adv + "-" + args.segnet_file
-            args.segnet_file = 'pre_trained/' +  args.segnet_file
         wandb.init(project="ObsNet", name = wandb_name, config = args, id = date_id)
-
+    args.segnet_file = 'pre_trained/' +  args.segnet_file
     # Load Dataset
     train_loader, val_loader, test_loader = data_loader(args.data, args)
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument("--dset_folder",   type=str,   default="",       help="path to dataset")
     parser.add_argument("--segnet_file",   type=str,   default="",       help="path to segnet")
     parser.add_argument("--obsnet_file",   type=str,   default="",       help="path to obsnet")
-    parser.add_argument("--model",         type=str,   default="segnet", help="Segnet|Deeplabv3")
+    parser.add_argument("--model",         type=str,   default="segnet", help="segnet|deeplabv3plus|road_anomaly")
     parser.add_argument("--data",          type=str,   default="",       help="CamVid|StreetHazard|BddAnomaly")
     parser.add_argument("--tboard",        type=str,   default="",       help="path to tensorboeard log")
     parser.add_argument("--T",             type=int,   default=50,       help="number of forward pass for ensemble")
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         args.mean = [0.4108, 0.4240, 0.4316]
         args.std = [0.3066, 0.3111, 0.3068]
         args.nclass = 12
-    elif args.data == "StreetHazard":
+    elif args.data == "StreetHazards":
         args.size = [360, 640]  # Original size [720, 1280]
         args.crop = (80, 150)
         args.pos_weight = torch.tensor([3]).to(args.device)
